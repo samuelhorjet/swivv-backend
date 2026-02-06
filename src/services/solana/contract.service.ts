@@ -291,10 +291,26 @@ export class ContractService {
   }
 
   private loadBackendKeypair(): Keypair {
-    const keypairPath = path.resolve(process.cwd(), "keypair.json");
-    return Keypair.fromSecretKey(
-      Uint8Array.from(JSON.parse(fs.readFileSync(keypairPath, "utf-8"))),
-    );
+    try {
+      if (process.env.WALLET_JSON) {
+        console.log("🔑 Loading Admin Wallet from Environment Variable...");
+        const secretKey = Uint8Array.from(JSON.parse(process.env.WALLET_JSON));
+        return Keypair.fromSecretKey(secretKey);
+      }
+
+      const keypairPath = path.resolve(process.cwd(), "Keypair.json");
+      if (fs.existsSync(keypairPath)) {
+        console.log("🔑 Loading Admin Wallet from Local File...");
+        return Keypair.fromSecretKey(
+          Uint8Array.from(JSON.parse(fs.readFileSync(keypairPath, "utf-8")))
+        );
+      }
+
+      throw new Error("No Wallet Found! Set WALLET_JSON env var or create Keypair.json");
+    } catch (error) {
+      console.error("❌ Failed to load Admin Wallet:", error);
+      throw new Error("Critical: Cannot start server without Admin Wallet.");
+    }
   }
 }
 
